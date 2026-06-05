@@ -528,19 +528,19 @@ class Resnet101_concat(nn.Module):
         # self.protein = nn.Sequential(nn.Linear(2048,1024),nn.Linear(1024,1))
         # self.fc = nn.Linear(2048, 2048)
 
-        self.calorie = nn.Sequential(nn.Linear(1024, 1024), nn.Linear(1024, 1))
-        self.mass = nn.Sequential(nn.Linear(1024, 1024), nn.Linear(1024, 1))
-        self.fat = nn.Sequential(nn.Linear(1024, 1024), nn.Linear(1024, 1))
-        self.carb = nn.Sequential(nn.Linear(1024, 1024), nn.Linear(1024, 1))
-        self.protein = nn.Sequential(nn.Linear(1024, 1024), nn.Linear(1024, 1))
+        # self.calorie = nn.Sequential(nn.Linear(1024, 1024), nn.Linear(1024, 1))
+        # self.mass = nn.Sequential(nn.Linear(1024, 1024), nn.Linear(1024, 1))
+        # self.fat = nn.Sequential(nn.Linear(1024, 1024), nn.Linear(1024, 1))
+        # self.carb = nn.Sequential(nn.Linear(1024, 1024), nn.Linear(1024, 1))
+        # self.protein = nn.Sequential(nn.Linear(1024, 1024), nn.Linear(1024, 1))
         self.fc = nn.Linear(2048, 1024)
-        self.LayerNorm = nn.LayerNorm(2048)
+        # self.LayerNorm = nn.LayerNorm(2048)
 
-        # self.latent_proj = nn.Sequential(
-        #     nn.Linear(1024, 256),  # 1024 is the post-fc ReLU dim
-        #     nn.ReLU(inplace=True),
-        #     nn.Linear(256, latent_dim),
-        # )
+        self.latent_proj = nn.Sequential(
+            nn.Linear(1024, 256),  # 1024 is the post-fc ReLU dim
+            nn.ReLU(inplace=True),
+            nn.Linear(256, latent_dim),
+        )
 
     # 4向量融合，一个result
     def forward(self, rgb, rgbd):
@@ -582,17 +582,17 @@ class Resnet101_concat(nn.Module):
         input = self.fc(input)
         input = F.relu(input)  # torch.Size([16, 2048]) 添加原因：faster rcnn 也加了
 
-        # img_latent = self.latent_proj(input)  # (B, 32)
-        # return img_latent
+        img_latent = self.latent_proj(input)  # (B, 32)
+        return img_latent
 
-        results = []
-        results.append(self.calorie(input).squeeze(-1))
-        results.append(self.mass(input).squeeze(-1))
-        results.append(self.fat(input).squeeze(-1))
-        results.append(self.carb(input).squeeze(-1))
-        results.append(self.protein(input).squeeze(-1))
-
-        return results
+        # results = []
+        # results.append(self.calorie(input).squeeze(-1))
+        # results.append(self.mass(input).squeeze(-1))
+        # results.append(self.fat(input).squeeze(-1))
+        # results.append(self.carb(input).squeeze(-1))
+        # results.append(self.protein(input).squeeze(-1))
+        #
+        # return results
 
     # 4向量相加，1个result
     # def forward(self, rgb, rgbd):

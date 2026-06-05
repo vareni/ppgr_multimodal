@@ -20,6 +20,10 @@ class MacroPlusCGM(nn.Module):
         self.macro_norm = nn.BatchNorm1d(n_macros)
         self.macro_latent_norm = nn.BatchNorm1d(latent_macro_dim)
 
+        self.macro_decode_heads = nn.ModuleList([
+            nn.Linear(latent_macro_dim, 1) for _ in range(n_macros)
+        ])
+
         # assert not (train_macro and detach_macros), "Train macro and detach macros can't go together!!!"
 
         if not train_macro:
@@ -48,26 +52,31 @@ class MacroPlusCGM(nn.Module):
         p2, p3, p4, p5 = self.net_rgb(img)
         outputs_rgbd = self.net_depth(img_depth)
         d2, d3, d4, d5 = outputs_rgbd
-        outputs = self.net_cat([p2, p3, p4, p5], [d2, d3, d4, d5])
-
-        macros_raw = torch.stack([outputs[0], outputs[2], outputs[3], outputs[4]], dim=-1)  #outputs[1] - mass
-        macros_cgm = self.macro_norm(macros_raw) if macros_raw.size(0) > 1 else macros_raw
-
-        if self.detach_macros:
-            macros_cgm = macros_cgm.detach()
-
-        x = torch.cat([macros_cgm, tab_feats], dim=-1)
-
-        # img_latent = self.net_cat([p2, p3, p4, p5], [d2, d3, d4, d5])  # (B, 32)
-        # img_latent = self.macro_latent_norm(img_latent) if img_latent.size(0) > 1 else img_latent
+        # outputs = self.net_cat([p2, p3, p4, p5], [d2, d3, d4, d5])
+        #
+        # macros_raw = torch.stack([outputs[0], outputs[2], outputs[3], outputs[4]], dim=-1)  #outputs[1] - mass
+        # macros_cgm = self.macro_norm(macros_raw) if macros_raw.size(0) > 1 else macros_raw
         #
         # if self.detach_macros:
-        #     img_latent = img_latent.detach()
+        #     macros_cgm = macros_cgm.detach()
         #
-        # x = torch.cat([img_latent, tab_feats], dim=-1)
+        # x = torch.cat([macros_cgm, tab_feats], dim=-1)
+
+        img_latent = self.net_cat([p2, p3, p4, p5], [d2, d3, d4, d5])  # (B, 32)
+
+        pred_macros = torch.cat(
+            [head(img_latent) for head in self.macro_decode_heads], dim=-1
+        )  # (B, n_macros)
+
+        img_latent = self.macro_latent_norm(img_latent) if img_latent.size(0) > 1 else img_latent
+
+        if self.detach_macros:
+            img_latent = img_latent.detach()
+
+        x = torch.cat([img_latent, tab_feats], dim=-1)
 
         logits = self.cgm_head(x)
-        return logits, macros_raw  #outputs, macros
+        return logits, pred_macros #macros_raw  #outputs, macros
 
     def train(self, mode=True):
         super().train(mode)
@@ -132,7 +141,7 @@ def load_macro_models(args, device=None):
     return net, net2, net_cat
 
 
-def load_pretrained_macro_weights(args, device):
+def load_partial_pretrained_macro_weights(args, device):
     """
     Load net_rgb, net_depth fully, and net_cat partially
     (shared conv/attention weights only, skip old macro regression heads).
@@ -225,8 +234,8 @@ def assemble_joint_model(args, device=None, out_dim=2):
 
     cgm_head = choose_CGM_model(args, in_dim, out_dim, device)
 
-    net, net2, net_cat = load_macro_models(args, device)
-    # net, net2, net_cat = load_pretrained_macro_weights(args, device)
+    # net, net2, net_cat = load_macro_models(args, device)
+    net, net2, net_cat = load_partial_pretrained_macro_weights(args, device)
     macro_net = [net, net2, net_cat]
 
     joint_model = MacroPlusCGM(macro_net, cgm_head, detach_macros=False, train_macro=args.train_macro,

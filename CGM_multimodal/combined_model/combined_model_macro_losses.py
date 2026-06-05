@@ -300,7 +300,7 @@ if __name__ == "__main__":
     model = assemble_joint_model(args, device)
 
     # criterion = nn.MSELoss()
-    criterion = weighted_cgm_loss #nn.SmoothL1Loss(beta=1.0)
+    criterion = nn.SmoothL1Loss(beta=1.0) #weighted_cgm_loss
     opt = torch.optim.Adam(model.parameters(), lr=5e-5, weight_decay=5e-4)
     # scheduler = torch.optim.lr_scheduler.ExponentialLR(opt, gamma=0.99)  # as RGBD
     scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
@@ -341,7 +341,7 @@ if __name__ == "__main__":
     model = assemble_joint_model(args, device)
 
     # criterion = nn.MSELoss()
-    criterion = weighted_cgm_loss # nn.SmoothL1Loss(beta=1.0)
+    criterion = nn.SmoothL1Loss(beta=1.0) #weighted_cgm_loss
     opt = torch.optim.Adam(model.parameters(), lr=5e-5, weight_decay=5e-4)
     # scheduler = torch.optim.lr_scheduler.ExponentialLR(opt, gamma=0.99)  # as RGBD
     scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
