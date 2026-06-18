@@ -22,7 +22,8 @@ def areaUnderCurve(a, b):
 def calc_iauc(cgm, sampling_interval):
     a = []
     for i in range(len(cgm)):
-        a.append(i * sampling_interval[i])
+        # a.append(i * sampling_interval[i])
+        a.append(i * sampling_interval)
     return areaUnderCurve(a, cgm)
 
 def calc_auc(cgm, sampling_interval):
@@ -33,6 +34,8 @@ def gather_data(meal_types=["lunch", "dinner"], get_all_meals=False):
 
     hours = 2
     libre_samples = hours * 4 + 1
+
+    libre_int = 15
     
     for sub in sorted(os.listdir("../../CGMacros")):
         if sub[:8] != "CGMacros":
@@ -51,12 +54,12 @@ def gather_data(meal_types=["lunch", "dinner"], get_all_meals=False):
         # for index in data[~data["Meal Type"].isna()].index:
             data_meal = {}
             data_meal["sub"] = sub[-3:]
-            data_meal["Libre GL"] = data["Libre GL"][index:index+135:15].to_list()
+            data_meal["Libre GL"] = data["Libre GL"][index:index+121:libre_int].to_list()
             data_meal["Libre GL before meal"] = data["Libre GL"].iloc[index - 29:index+1].to_list()
             if len(data_meal["Libre GL"]) < 9:
                 continue
-            data_meal["iAUC"] = calc_iauc(data_meal["Libre GL"], [15 for i in range(libre_samples)])
-            data_meal["AUC"] = calc_auc(data_meal["Libre GL"], 15)
+            data_meal["iAUC"] = calc_iauc(data_meal["Libre GL"], libre_int) #[libre_int for i in range(libre_samples)])
+            data_meal["AUC"] = calc_auc(data_meal["Libre GL"], libre_int)
             data_meal["Carb"] = data["Carbs"][index] * 4
             data_meal["Protein"] = data["Protein"][index] * 4
             data_meal["Fat"] = data["Fat"][index] * 9

@@ -121,7 +121,8 @@ class Nutrition_RGBD(Dataset):
 
         self.transform = transform
 
-        self.stats = self.normalize_attrs(norm_cols + ['iAUC_log', 'AUC_log'], stats=stats, train=train)
+        if glucose:
+            self.stats = self.normalize_attrs(norm_cols + ['iAUC_log', 'AUC_log'], stats=stats, train=train)
 
 
     def normalize_attrs(self, norm_cols, stats=None, train=True, eps=1e-6):
