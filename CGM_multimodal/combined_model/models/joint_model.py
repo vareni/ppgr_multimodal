@@ -17,11 +17,11 @@ class MacroPlusCGM(nn.Module):
         self.detach_macros = detach_macros
         self.train_macro = train_macro
 
-        latent_macro_dim = self.net_cat.latent_dim
-
         self.macro_norm = nn.BatchNorm1d(n_macros)
-        self.macro_latent_norm = nn.BatchNorm1d(latent_macro_dim)
+
         self.use_latent_macros = self.net_cat.use_latent_macros
+        latent_macro_dim = self.net_cat.latent_dim
+        self.macro_latent_norm = nn.BatchNorm1d(latent_macro_dim)
 
         self.macro_decode_heads = nn.ModuleList([
             nn.Linear(latent_macro_dim, 1) for _ in range(n_macros)
@@ -45,7 +45,6 @@ class MacroPlusCGM(nn.Module):
         p2, p3, p4, p5 = self.net_rgb(img)
         outputs_rgbd = self.net_depth(img_depth)
         d2, d3, d4, d5 = outputs_rgbd
-        outputs = self.net_cat([p2, p3, p4, p5], [d2, d3, d4, d5])
 
         if self.use_latent_macros:
             img_latent = self.net_cat([p2, p3, p4, p5], [d2, d3, d4, d5])  # (B, 32)
@@ -64,6 +63,7 @@ class MacroPlusCGM(nn.Module):
             logits = self.cgm_head(x)
             return logits, pred_macros
 
+        outputs = self.net_cat([p2, p3, p4, p5], [d2, d3, d4, d5])
         macros_raw = torch.stack([outputs[0], outputs[2], outputs[3], outputs[4]], dim=-1)  # outputs[1] - mass
         macros_cgm = self.macro_norm(macros_raw) if macros_raw.size(0) > 1 else macros_raw
 
@@ -146,7 +146,7 @@ def load_partial_pretrained_macro_weights(args, device):
     """
     net = resnet101(rgbd=args.rgbd)
     net2 = resnet101(rgbd=args.rgbd)
-    net_cat = Resnet101_concat(latent_dim=args.latent_macro_dim)
+    net_cat = Resnet101_concat(use_latent_macros=args.use_latent_macros, latent_dim=args.latent_macro_dim)
 
     checkpoint_path = args.resume
     if not checkpoint_path:
@@ -204,6 +204,11 @@ def choose_CGM_model(args, in_dim, out_dim, device):
     if args.microbiome:
         n_micro = 5
 
+    if args.use_latent_macros:
+        n_macros = args.latent_macro_dim
+    else:
+        n_macros = 4
+
     if args.cgm_model == 'CGMHead':
         return CGMHead(in_dim=in_dim, out_dim=out_dim).to(device)  # iAUC - out=1
     elif args.cgm_model == 'CGMHeadAttention':
@@ -212,7 +217,7 @@ def choose_CGM_model(args, in_dim, out_dim, device):
         return CGMHeadExpanded(in_dim=in_dim, out_dim=out_dim).to(device)
     elif args.cgm_model == 'CGMHeadAttentionMicroFiLM':
         return CGMHeadAttentionMicroFiLM(in_dim=in_dim, out_dim=out_dim, n_micro=n_micro,
-                                         n_macros=args.latent_macro_dim).to(device)
+                                         n_macros=n_macros).to(device)
     raise ValueError('Unrecognized CGM model')
 
 
@@ -220,12 +225,13 @@ def assemble_joint_model(args, device=None, out_dim=2):
     if device is None:
         device = 'cuda' if torch.cuda.is_available() else 'cpu'
 
+    in_dim = 15  # glucose
     if args.microbiome:
-        # in_dim = 4 + 15 + 5 + 1  # macros + glucose + microbiome + fiber
-        in_dim = args.latent_macro_dim + 15 + 5  # macros + glucose + microbiome
+        in_dim += 5
+    if args.use_latent_macros:
+        in_dim += args.latent_macro_dim
     else:
-        # in_dim = 4 + 15 + 1  # macros + glucose + fiber
-        in_dim = args.latent_macro_dim + 15  # macros + glucose
+        in_dim += 4  # macros
 
     cgm_head = choose_CGM_model(args, in_dim, out_dim, device)
 
