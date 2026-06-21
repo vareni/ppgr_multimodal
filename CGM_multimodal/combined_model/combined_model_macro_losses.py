@@ -30,8 +30,8 @@ parser.add_argument('--rgbd', action='store_true',  help='4 channels')
 parser.add_argument('--resume', '-r', type=str, help='resume from checkpoint')
 parser.add_argument('--cgm_model', default='CGMHead', type=str, help='choose CGM Head')
 parser.add_argument('--train_macro', default=False, action='store_true')
-parser.add_argument('--latent_macro_dim', type=int, default=8)
 parser.add_argument('--use_latent_macros', type=bool, default=False)
+parser.add_argument('--latent_macro_dim', type=int, default=4)
 parser.add_argument('--macro_loss_weight', type=float, default=0.5)
 
 args = parser.parse_args()
@@ -260,13 +260,16 @@ def define_opt_and_schedulers(model):
             list(model.module.net_rgb.parameters()) +
             list(model.module.net_depth.parameters()) +
             list(model.module.net_cat.parameters()) +
-            list(model.module.macro_decode_heads.parameters()) +
             list(model.module.macro_norm.parameters())
     )
+    if hasattr(model.module, 'macro_decode_heads'):
+        macro_params += list(model.module.macro_decode_heads.parameters())
+
     cgm_params = (
-            list(model.module.cgm_head.parameters()) +
-            list(model.module.macro_latent_norm.parameters())
+            list(model.module.cgm_head.parameters())
     )
+    if hasattr(model.module, 'macro_latent_norm'):
+        cgm_params += list(model.module.macro_latent_norm.parameters())
 
     opt = torch.optim.Adam([
         {"params": macro_params, "lr": 5e-5},
@@ -339,7 +342,7 @@ if __name__ == "__main__":
     train_loader = DataLoader(trainset, batch_size=BATCH_SIZE, shuffle=True, generator=g, num_workers=4,
                               pin_memory=True) #, persistent_workers=True, prefetch_factor=4)
 
-    val_loader = DataLoader(valset, batch_size=BATCH_SIZE, shuffle=False, num_workers=4)
+    val_loader = DataLoader(valset, batch_size=BATCH_SIZE, shuffle=False, num_workers=4, pin_memory=True)
 
     test_loader = DataLoader(testset, batch_size=BATCH_SIZE, shuffle=False, num_workers=4,
                              pin_memory=True) #, persistent_workers=True, prefetch_factor=4)
@@ -347,21 +350,13 @@ if __name__ == "__main__":
 
     device = "cuda" if torch.cuda.is_available() else "cpu"
     print(f'Device: {device}')
-    # model = CGMHead(in_dim=len(feature_cols), hidden=64, out_dim=len(TARGET_COLS)).to(device)
+
     model = assemble_joint_model(args, device)
 
-    # criterion = nn.MSELoss()
     criterion = nn.SmoothL1Loss(beta=1.0) #weighted_cgm_loss
-    # opt = torch.optim.Adam(model.parameters(), lr=5e-5, weight_decay=5e-4)
-    # # scheduler = torch.optim.lr_scheduler.ExponentialLR(opt, gamma=0.99)  # as RGBD
-    # scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
-    #     opt, mode="min", factor=0.5, patience=15, min_lr=1e-6
-    # )
-
     opt, sched_macro, sched_cgm = define_opt_and_schedulers(model)
 
-
-    train_model(model, EPOCHS, train_loader, val_loader, criterion, opt, sched_macro, sched_cgm, #scheduler,
+    train_model(model, EPOCHS, train_loader, val_loader, criterion, opt, sched_macro, sched_cgm,  # scheduler,
                 len_trainset=len(trainset), len_testset=len(valset), best_path=best_path, device=device,
                 macro_weight=args.macro_loss_weight)
 
@@ -385,27 +380,18 @@ if __name__ == "__main__":
     train_loader = DataLoader(trainset, batch_size=BATCH_SIZE, shuffle=True, generator=g, num_workers=4,
                               pin_memory=True)  # , persistent_workers=True, prefetch_factor=4)
 
-    val_loader = DataLoader(valset, batch_size=BATCH_SIZE, shuffle=False, num_workers=4)
+    val_loader = DataLoader(valset, batch_size=BATCH_SIZE, shuffle=False, num_workers=4,pin_memory=True)
 
     test_loader = DataLoader(testset, batch_size=BATCH_SIZE, shuffle=False, num_workers=4,
                              pin_memory=True)  # , persistent_workers=True, prefetch_factor=4)
 
-    # model = CGMHead(in_dim=len(feature_cols + feature_cols_micro), hidden=64, out_dim=len(TARGET_COLS)).to(device)
     args.microbiome = True
     model = assemble_joint_model(args, device)
 
-    # criterion = nn.MSELoss()
-    criterion = nn.SmoothL1Loss(beta=1.0) #weighted_cgm_loss
-    # opt = torch.optim.Adam(model.parameters(), lr=5e-5, weight_decay=5e-4)
-    # # scheduler = torch.optim.lr_scheduler.ExponentialLR(opt, gamma=0.99)  # as RGBD
-    # scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
-    #     opt, mode="min", factor=0.5, patience=15, min_lr=1e-6
-    # )
-
+    criterion = nn.SmoothL1Loss(beta=1.0)  # weighted_cgm_loss
     opt, sched_macro, sched_cgm = define_opt_and_schedulers(model)
 
-
-    train_model(model, EPOCHS, train_loader, val_loader, criterion, opt, sched_macro, sched_cgm, #scheduler,
+    train_model(model, EPOCHS, train_loader, val_loader, criterion, opt, sched_macro, sched_cgm,  # scheduler,
                 len_trainset=len(trainset), len_testset=len(valset), best_path=best_path_micro, device=device,
                 macro_weight=args.macro_loss_weight)
 

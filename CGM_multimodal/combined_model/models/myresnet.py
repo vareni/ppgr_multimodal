@@ -523,16 +523,6 @@ class Resnet101_concat(nn.Module):
         self.avgpool_3 = nn.AdaptiveAvgPool2d((1, 1))
         self.avgpool_4 = nn.AdaptiveAvgPool2d((1, 1))
 
-        # self.calorie = nn.Sequential(nn.Linear(2048,1024),nn.Linear(1024,1))
-        # self.mass = nn.Sequential(nn.Linear(2048,1024),nn.Linear(1024,1))
-        # self.fat = nn.Sequential(nn.Linear(2048,1024),nn.Linear(1024,1))
-        # self.carb = nn.Sequential(nn.Linear(2048,1024),nn.Linear(1024,1))
-        # self.protein = nn.Sequential(nn.Linear(2048,1024),nn.Linear(1024,1))
-        # self.fc = nn.Linear(2048, 2048)
-
-        self.fc = nn.Linear(2048, 1024)
-        self.LayerNorm = nn.LayerNorm(2048)
-
         if use_latent_macros:
             self.latent_proj = nn.Sequential(
                 nn.Linear(1024, 256),  # 1024 is the post-fc ReLU dim
@@ -545,6 +535,9 @@ class Resnet101_concat(nn.Module):
             self.fat = nn.Sequential(nn.Linear(1024, 1024), nn.Linear(1024, 1))
             self.carb = nn.Sequential(nn.Linear(1024, 1024), nn.Linear(1024, 1))
             self.protein = nn.Sequential(nn.Linear(1024, 1024), nn.Linear(1024, 1))
+
+        self.fc = nn.Linear(2048, 1024)
+        self.LayerNorm = nn.LayerNorm(2048)
 
 
 
