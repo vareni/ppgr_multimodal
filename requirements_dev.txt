@@ -1,0 +1,9 @@
+# Optional dependencies for notebooks and exploratory analysis
+# Install only if you want to run notebooks from EXPLORATION/.
+
+jupyter==1.1.1
+jupyterlab==4.5.3
+notebook==7.5.3
+ipykernel==7.2.0
+ipython==8.30.0
+ipywidgets==8.1.7
