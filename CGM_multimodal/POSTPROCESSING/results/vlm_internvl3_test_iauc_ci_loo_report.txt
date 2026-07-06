@@ -1,0 +1,30 @@
+Model: vlm_internvl3_test_iauc
+Target: iAUC
+Evaluation split: held-out test subjects
+CI method: patient-level bootstrap + Fisher z-transform
+LOO method: leave-one-subject-out on test subjects
+
+=== Pearson correlation with confidence interval ===
+Pearson r:     0.379136
+95% CI low:    0.015923
+95% CI high:   0.593407
+p-value:       3.063350e-03
+n subjects:    7
+n meals:       59
+n boot valid:  9997
+
+=== Leave-one-subject-out robustness ===
+Mean r:        0.374435
+Std r:         0.065908
+Min r:         0.270234
+Median r:      0.352100
+Max r:         0.452729
+
+LOO per subject:
+Left out subject 22: n_meals_remaining = 52, r = 0.346490, p = 1.185863e-02
+Left out subject 26: n_meals_remaining = 50, r = 0.352100, p = 1.215462e-02
+Left out subject 29: n_meals_remaining = 51, r = 0.449243, p = 9.433643e-04
+Left out subject 32: n_meals_remaining = 51, r = 0.270234, p = 5.512817e-02
+Left out subject 38: n_meals_remaining = 49, r = 0.452729, p = 1.089825e-03
+Left out subject 47: n_meals_remaining = 52, r = 0.408277, p = 2.658521e-03
+Left out subject 49: n_meals_remaining = 49, r = 0.341971, p = 1.617232e-02

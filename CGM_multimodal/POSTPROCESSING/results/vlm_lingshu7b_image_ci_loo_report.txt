@@ -1,0 +1,30 @@
+Model: vlm_lingshu7b_image
+Target: iAUC
+Evaluation split: held-out test subjects
+CI method: patient-level bootstrap + Fisher z-transform
+LOO method: leave-one-subject-out on test subjects
+
+=== Pearson correlation with confidence interval ===
+Pearson r:     0.026091
+95% CI low:    -0.216155
+95% CI high:   0.186395
+p-value:       8.444898e-01
+n subjects:    7
+n meals:       59
+n boot valid:  10000
+
+=== Leave-one-subject-out robustness ===
+Mean r:        0.023818
+Std r:         0.044957
+Min r:         -0.010410
+Median r:      0.004287
+Max r:         0.103603
+
+LOO per subject:
+Left out subject 22: n_meals_remaining = 52, r = -0.010410, p = 9.416120e-01
+Left out subject 26: n_meals_remaining = 50, r = 0.103603, p = 4.739996e-01
+Left out subject 29: n_meals_remaining = 51, r = -0.002047, p = 9.886250e-01
+Left out subject 32: n_meals_remaining = 51, r = 0.071508, p = 6.180248e-01
+Left out subject 38: n_meals_remaining = 49, r = -0.007844, p = 9.573401e-01
+Left out subject 47: n_meals_remaining = 52, r = 0.004287, p = 9.759370e-01
+Left out subject 49: n_meals_remaining = 49, r = 0.007626, p = 9.585247e-01

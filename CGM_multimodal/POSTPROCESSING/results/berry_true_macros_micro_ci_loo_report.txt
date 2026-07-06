@@ -1,0 +1,30 @@
+Model: berry_true_macros_micro
+Target: iAUC
+Evaluation split: held-out test subjects
+CI method: patient-level bootstrap + Fisher z-transform
+LOO method: leave-one-subject-out on test subjects
+
+=== Pearson correlation with confidence interval ===
+Pearson r:     0.584076
+95% CI low:    0.424235
+95% CI high:   0.731420
+p-value:       1.196468e-06
+n subjects:    7
+n meals:       59
+n boot valid:  10000
+
+=== Leave-one-subject-out robustness ===
+Mean r:        0.586014
+Std r:         0.034070
+Min r:         0.544668
+Median r:      0.584861
+Max r:         0.647605
+
+LOO per subject:
+Left out subject 22: n_meals_remaining = 52, r = 0.647605, p = 2.114167e-07
+Left out subject 26: n_meals_remaining = 50, r = 0.544668, p = 4.327070e-05
+Left out subject 29: n_meals_remaining = 51, r = 0.563166, p = 1.690799e-05
+Left out subject 32: n_meals_remaining = 51, r = 0.595443, p = 4.045988e-06
+Left out subject 38: n_meals_remaining = 49, r = 0.562768, p = 2.564853e-05
+Left out subject 47: n_meals_remaining = 52, r = 0.603589, p = 2.172533e-06
+Left out subject 49: n_meals_remaining = 49, r = 0.584861, p = 1.019049e-05

@@ -1,0 +1,30 @@
+Model: CGMHead_MLP_iAUC_macro_model_microbiome
+Target: iAUC
+Evaluation split: held-out test subjects
+CI method: patient-level bootstrap + Fisher z-transform
+LOO method: leave-one-subject-out on test subjects
+
+=== Pearson correlation with confidence interval ===
+Pearson r:     0.700902
+95% CI low:    0.417245
+95% CI high:   0.842222
+p-value:       6.370412e-10
+n subjects:    7
+n meals:       59
+n boot valid:  10000
+
+=== Leave-one-subject-out robustness ===
+Mean r:        0.692179
+Std r:         0.069605
+Min r:         0.552955
+Median r:      0.709562
+Max r:         0.783258
+
+LOO per subject:
+Left out subject 22: n_meals_remaining = 52, r = 0.682752, p = 2.468267e-08
+Left out subject 26: n_meals_remaining = 50, r = 0.709562, p = 7.986973e-09
+Left out subject 29: n_meals_remaining = 51, r = 0.716499, p = 3.372946e-09
+Left out subject 32: n_meals_remaining = 51, r = 0.688237, p = 2.391646e-08
+Left out subject 38: n_meals_remaining = 49, r = 0.783258, p = 2.900238e-11
+Left out subject 47: n_meals_remaining = 52, r = 0.711988, p = 3.256815e-09
+Left out subject 49: n_meals_remaining = 49, r = 0.552955, p = 3.785440e-05
