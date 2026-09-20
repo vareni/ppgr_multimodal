@@ -30,7 +30,9 @@ parser.add_argument('--rgbd', action='store_true',  help='4 channels')
 parser.add_argument('--resume', '-r', type=str, help='resume from checkpoint')
 parser.add_argument('--cgm_model', default='CGMHead', type=str, help='choose CGM Head')
 parser.add_argument('--train_macro', default=False, action='store_true')
-parser.add_argument('--latent_macro_dim', type=int, default=32)
+parser.add_argument('--use_latent_macros', type=bool, default=False)
+parser.add_argument('--latent_macro_dim', type=int, default=4)
+parser.add_argument('--macro_loss_weight', type=float, default=0.5)
 
 args = parser.parse_args()
 
@@ -60,7 +62,7 @@ def save_checkpoint(path, model, optimizer=None, scheduler=None, epoch=None, bes
     torch.save(ckpt, path)
 
 
-def train_model(model, EPOCHS, train_loader, test_loader, criterion, opt, scheduler,
+def train_model(model, EPOCHS, train_loader, test_loader, criterion, opt, sched_macro, sched_cgm, #scheduler,
                 len_trainset, len_testset, best_path, device, macro_weight=0.5):
     best_loss = np.inf
     patience = 15
@@ -147,7 +149,9 @@ def train_model(model, EPOCHS, train_loader, test_loader, criterion, opt, schedu
         te_loss /= len_testset
         n_val_batches = len(test_loader)
 
-        scheduler.step(te_loss)
+        # scheduler.step(te_loss)
+        sched_macro.step()  # ExponentialLR needs no argument
+        sched_cgm.step(te_loss)  # ReduceLROnPlateau needs the metric
 
         print(
             f"Epoch {epoch:03d} | "
@@ -161,7 +165,7 @@ def train_model(model, EPOCHS, train_loader, test_loader, criterion, opt, schedu
         if te_loss + 1e-4 < best_loss:
             best_loss = te_loss
             epochs_no_improve = 0
-            save_checkpoint(best_path, model=model, optimizer=opt, scheduler=scheduler,
+            save_checkpoint(best_path, model=model, optimizer=opt, scheduler=None, # scheduler,
                             epoch=epoch, best_score=best_loss)
             print(f"  => Saved new best")
         else:
@@ -233,6 +237,56 @@ def weighted_cgm_loss(pred, target, auc_weight=0.9):
     loss_auc  = nn.functional.smooth_l1_loss(pred[:, 1], target[:, 1], beta=1.0)
     return loss_iauc + auc_weight * loss_auc
 
+class PartialLRScheduler:
+    """Wraps a scheduler to only touch param groups at given indices."""
+    def __init__(self, scheduler, group_indices: list[int]):
+        self.scheduler = scheduler
+        self.group_indices = group_indices
+        # stash lrs of groups we don't want touched
+        self._other_lrs = None
+
+    def step(self, *args, **kwargs):
+        opt = self.scheduler.optimizer
+        # freeze lrs of groups we don't own
+        saved = {i: pg["lr"] for i, pg in enumerate(opt.param_groups)
+                 if i not in self.group_indices}
+        self.scheduler.step(*args, **kwargs)
+        # restore them
+        for i, lr in saved.items():
+            opt.param_groups[i]["lr"] = lr
+
+def define_opt_and_schedulers(model):
+    macro_params = (
+            list(model.module.net_rgb.parameters()) +
+            list(model.module.net_depth.parameters()) +
+            list(model.module.net_cat.parameters()) +
+            list(model.module.macro_norm.parameters())
+    )
+    if hasattr(model.module, 'macro_decode_heads'):
+        macro_params += list(model.module.macro_decode_heads.parameters())
+
+    cgm_params = (
+            list(model.module.cgm_head.parameters())
+    )
+    if hasattr(model.module, 'macro_latent_norm'):
+        cgm_params += list(model.module.macro_latent_norm.parameters())
+
+    opt = torch.optim.Adam([
+        {"params": macro_params, "lr": 5e-5},
+        {"params": cgm_params, "lr": 5e-5},
+    ], weight_decay=5e-4)
+
+    scheduler_macro = PartialLRScheduler(
+        torch.optim.lr_scheduler.ExponentialLR(opt, gamma=0.99),
+        group_indices=[0]
+    )
+    scheduler_cgm = PartialLRScheduler(
+        torch.optim.lr_scheduler.ReduceLROnPlateau(opt, mode="min", factor=0.5, patience=15, min_lr=1e-6),
+        group_indices=[1]
+    )
+
+    return opt, scheduler_macro, scheduler_cgm
+
 
 if __name__ == "__main__":
     SEED = 42
@@ -288,7 +342,7 @@ if __name__ == "__main__":
     train_loader = DataLoader(trainset, batch_size=BATCH_SIZE, shuffle=True, generator=g, num_workers=4,
                               pin_memory=True) #, persistent_workers=True, prefetch_factor=4)
 
-    val_loader = DataLoader(valset, batch_size=BATCH_SIZE, shuffle=False, num_workers=4)
+    val_loader = DataLoader(valset, batch_size=BATCH_SIZE, shuffle=False, num_workers=4, pin_memory=True)
 
     test_loader = DataLoader(testset, batch_size=BATCH_SIZE, shuffle=False, num_workers=4,
                              pin_memory=True) #, persistent_workers=True, prefetch_factor=4)
@@ -296,20 +350,15 @@ if __name__ == "__main__":
 
     device = "cuda" if torch.cuda.is_available() else "cpu"
     print(f'Device: {device}')
-    # model = CGMHead(in_dim=len(feature_cols), hidden=64, out_dim=len(TARGET_COLS)).to(device)
+
     model = assemble_joint_model(args, device)
 
-    # criterion = nn.MSELoss()
-    criterion = weighted_cgm_loss #nn.SmoothL1Loss(beta=1.0)
-    opt = torch.optim.Adam(model.parameters(), lr=5e-5, weight_decay=5e-4)
-    # scheduler = torch.optim.lr_scheduler.ExponentialLR(opt, gamma=0.99)  # as RGBD
-    scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
-        opt, mode="min", factor=0.5, patience=15, min_lr=1e-6
-    )
+    criterion = nn.SmoothL1Loss(beta=1.0) #weighted_cgm_loss
+    opt, sched_macro, sched_cgm = define_opt_and_schedulers(model)
 
-
-    train_model(model, EPOCHS, train_loader, val_loader, criterion, opt, scheduler,
-                len_trainset=len(trainset), len_testset=len(valset), best_path=best_path, device=device)
+    train_model(model, EPOCHS, train_loader, val_loader, criterion, opt, sched_macro, sched_cgm,  # scheduler,
+                len_trainset=len(trainset), len_testset=len(valset), best_path=best_path, device=device,
+                macro_weight=args.macro_loss_weight)
 
     y_std, y_mean = trainset.stats["std"]["iAUC_log"], trainset.stats["mean"]["iAUC_log"]
     eval_model(model, best_path, device, y_std, y_mean, test_loader)
@@ -331,26 +380,20 @@ if __name__ == "__main__":
     train_loader = DataLoader(trainset, batch_size=BATCH_SIZE, shuffle=True, generator=g, num_workers=4,
                               pin_memory=True)  # , persistent_workers=True, prefetch_factor=4)
 
-    val_loader = DataLoader(valset, batch_size=BATCH_SIZE, shuffle=False, num_workers=4)
+    val_loader = DataLoader(valset, batch_size=BATCH_SIZE, shuffle=False, num_workers=4,pin_memory=True)
 
     test_loader = DataLoader(testset, batch_size=BATCH_SIZE, shuffle=False, num_workers=4,
                              pin_memory=True)  # , persistent_workers=True, prefetch_factor=4)
 
-    # model = CGMHead(in_dim=len(feature_cols + feature_cols_micro), hidden=64, out_dim=len(TARGET_COLS)).to(device)
     args.microbiome = True
     model = assemble_joint_model(args, device)
 
-    # criterion = nn.MSELoss()
-    criterion = weighted_cgm_loss # nn.SmoothL1Loss(beta=1.0)
-    opt = torch.optim.Adam(model.parameters(), lr=5e-5, weight_decay=5e-4)
-    # scheduler = torch.optim.lr_scheduler.ExponentialLR(opt, gamma=0.99)  # as RGBD
-    scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
-        opt, mode="min", factor=0.5, patience=15, min_lr=1e-6
-    )
+    criterion = nn.SmoothL1Loss(beta=1.0)  # weighted_cgm_loss
+    opt, sched_macro, sched_cgm = define_opt_and_schedulers(model)
 
-
-    train_model(model, EPOCHS, train_loader, val_loader, criterion, opt, scheduler,
-                len_trainset=len(trainset), len_testset=len(valset), best_path=best_path_micro, device=device)
+    train_model(model, EPOCHS, train_loader, val_loader, criterion, opt, sched_macro, sched_cgm,  # scheduler,
+                len_trainset=len(trainset), len_testset=len(valset), best_path=best_path_micro, device=device,
+                macro_weight=args.macro_loss_weight)
 
     y_std, y_mean = trainset.stats["std"]["iAUC_log"], trainset.stats["mean"]["iAUC_log"]
     eval_model(model, best_path_micro, device, y_std, y_mean, test_loader)

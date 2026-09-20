@@ -22,17 +22,15 @@ def areaUnderCurve(a, b):
 def calc_iauc(cgm, sampling_interval):
     a = []
     for i in range(len(cgm)):
-        a.append(i * sampling_interval[i])
+        # a.append(i * sampling_interval[i])
+        a.append(i * sampling_interval)
     return areaUnderCurve(a, cgm)
 
 def calc_auc(cgm, sampling_interval):
     return np.trapz(cgm, dx=sampling_interval)
 
-def gather_data(meal_types=["lunch", "dinner"], get_all_meals=False):
+def gather_data(meal_types=["lunch", "dinner"], get_all_meals=False, libre_int=15):
     data_all_sub = pd.DataFrame(columns = ["sub", "Libre GL", "Carb", "Protein", "Fat", "Fiber", "Image path", "Meal Type", "Amount Consumed"])
-
-    hours = 2
-    libre_samples = hours * 4 + 1
     
     for sub in sorted(os.listdir("../../CGMacros")):
         if sub[:8] != "CGMacros":
@@ -47,26 +45,20 @@ def gather_data(meal_types=["lunch", "dinner"], get_all_meals=False):
                 data["Meal Type"].fillna("").str.strip().str.lower().isin(meal_types)
             ]
         for index in potential_data.index:
-        # for index in data[(data["Meal Type"] == "Lunch") | (data["Meal Type"] == "lunch") | (data["Meal Type"] == "dinner") | (data["Meal Type"] == "Dinner")].index:
-        # for index in data[~data["Meal Type"].isna()].index:
             data_meal = {}
             data_meal["sub"] = sub[-3:]
-            data_meal["Libre GL"] = data["Libre GL"][index:index+135:15].to_list()
+            data_meal["Libre GL"] = data["Libre GL"][index:index+121:libre_int].to_list()
             data_meal["Libre GL before meal"] = data["Libre GL"].iloc[index - 29:index+1].to_list()
             if len(data_meal["Libre GL"]) < 9:
                 continue
-            data_meal["iAUC"] = calc_iauc(data_meal["Libre GL"], [15 for i in range(libre_samples)])
-            data_meal["AUC"] = calc_auc(data_meal["Libre GL"], 15)
+            data_meal["iAUC"] = calc_iauc(data_meal["Libre GL"], libre_int) #[libre_int for i in range(libre_samples)])
+            data_meal["AUC"] = calc_auc(data_meal["Libre GL"], libre_int)
             data_meal["Carb"] = data["Carbs"][index] * 4
             data_meal["Protein"] = data["Protein"][index] * 4
             data_meal["Fat"] = data["Fat"][index] * 9
             data_meal["Fiber"] = data["Fiber"][index] * 2
             data_meal["Calories"] = data["Calories"][index]
             data_meal["Image path"] = data["Image path"][index]
-            # if (data["Meal Type"][index] == "Lunch") or (data["Meal Type"][index] == "lunch"):
-            #     data_meal["Meal Type"] = "Lunch"
-            # else:
-            #     data_meal["Meal Type"] = "Dinner"
             data_meal["Meal Type"] = (data["Meal Type"][index]).strip().lower()
             if "Amount Consumed" in data.columns:
                 data_meal["Amount Consumed"] = data["Amount Consumed"][index]
@@ -245,7 +237,7 @@ def parse_raw_data(save_all_path=None, save_correct_path=None, save_incorrect_pa
     data_all_sub = gather_data(get_all_meals=get_all_meals, meal_types=meal_types)
 
     data_all_sub = data_all_sub[data_all_sub["iAUC"] > 0]
-    data_all_sub = data_all_sub.dropna(subset=['Image path', 'Fiber'])
+    data_all_sub = data_all_sub.dropna(subset=['Image path'])
     data_all_sub.reset_index(inplace=True)
 
     print(f"After filters iAUC>0, dropna: {data_all_sub.shape[0]}")

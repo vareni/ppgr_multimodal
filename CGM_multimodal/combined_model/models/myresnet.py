@@ -495,11 +495,13 @@ class ResNet(nn.Module):
 
 # lmj 20210831
 class Resnet101_concat(nn.Module):
-    def __init__(self, latent_dim=32):
+    def __init__(self, use_latent_macros=False, latent_dim=8):
         super(Resnet101_concat, self).__init__()
         # self.rgb_tensor = rgb
         # self.rgbd_tensor = rgbd
         # pdb.set_trace()
+        self.use_latent_macros = use_latent_macros
+        self.latent_dim = latent_dim
         self.refine = BFP(512, 4)
 
         self.smooth1 = nn.Conv2d(512, 512, kernel_size=3, stride=1, padding=1)
@@ -521,26 +523,23 @@ class Resnet101_concat(nn.Module):
         self.avgpool_3 = nn.AdaptiveAvgPool2d((1, 1))
         self.avgpool_4 = nn.AdaptiveAvgPool2d((1, 1))
 
-        # self.calorie = nn.Sequential(nn.Linear(2048,1024),nn.Linear(1024,1))
-        # self.mass = nn.Sequential(nn.Linear(2048,1024),nn.Linear(1024,1))
-        # self.fat = nn.Sequential(nn.Linear(2048,1024),nn.Linear(1024,1))
-        # self.carb = nn.Sequential(nn.Linear(2048,1024),nn.Linear(1024,1))
-        # self.protein = nn.Sequential(nn.Linear(2048,1024),nn.Linear(1024,1))
-        # self.fc = nn.Linear(2048, 2048)
+        if use_latent_macros:
+            self.latent_proj = nn.Sequential(
+                nn.Linear(1024, 256),  # 1024 is the post-fc ReLU dim
+                nn.ReLU(inplace=True),
+                nn.Linear(256, latent_dim),
+            )
+        else:
+            self.calorie = nn.Sequential(nn.Linear(1024, 1024), nn.Linear(1024, 1))
+            self.mass = nn.Sequential(nn.Linear(1024, 1024), nn.Linear(1024, 1))
+            self.fat = nn.Sequential(nn.Linear(1024, 1024), nn.Linear(1024, 1))
+            self.carb = nn.Sequential(nn.Linear(1024, 1024), nn.Linear(1024, 1))
+            self.protein = nn.Sequential(nn.Linear(1024, 1024), nn.Linear(1024, 1))
 
-        self.calorie = nn.Sequential(nn.Linear(1024, 1024), nn.Linear(1024, 1))
-        self.mass = nn.Sequential(nn.Linear(1024, 1024), nn.Linear(1024, 1))
-        self.fat = nn.Sequential(nn.Linear(1024, 1024), nn.Linear(1024, 1))
-        self.carb = nn.Sequential(nn.Linear(1024, 1024), nn.Linear(1024, 1))
-        self.protein = nn.Sequential(nn.Linear(1024, 1024), nn.Linear(1024, 1))
         self.fc = nn.Linear(2048, 1024)
         self.LayerNorm = nn.LayerNorm(2048)
 
-        # self.latent_proj = nn.Sequential(
-        #     nn.Linear(1024, 256),  # 1024 is the post-fc ReLU dim
-        #     nn.ReLU(inplace=True),
-        #     nn.Linear(256, latent_dim),
-        # )
+
 
     # 4向量融合，一个result
     def forward(self, rgb, rgbd):
@@ -582,8 +581,9 @@ class Resnet101_concat(nn.Module):
         input = self.fc(input)
         input = F.relu(input)  # torch.Size([16, 2048]) 添加原因：faster rcnn 也加了
 
-        # img_latent = self.latent_proj(input)  # (B, 32)
-        # return img_latent
+        if self.use_latent_macros:
+            img_latent = self.latent_proj(input)  # (B, 32)
+            return img_latent
 
         results = []
         results.append(self.calorie(input).squeeze(-1))
