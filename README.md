@@ -1,8 +1,18 @@
 # Multimodal Postprandial Glycemic Response Prediction
 
-This repository contains the code for master’s thesis on predicting postprandial glycemic response from food images, clinical variables, microbiome features, and continuous glucose monitoring data.
+This repository contains the code accompanying the paper:
 
-The main goal of the project is to predict the postprandial glucose response after meals, using image-derived macronutrient representations together with subject-specific clinical and microbiome information.
+**Predicting Postprandial Glycemic Response from Meal Images, Clinical Variables, and Gut Microbiome Information**
+
+Varvara Kondratyeva, Kamilia Zaripova, Nassir Navab, Azade Farshad  
+Accepted at the **MICCAI 2026 Workshop on Multimodal Learning with Medical Tabular Data (MultiTab)**.
+
+The work investigates multimodal machine learning approaches for predicting postprandial glycemic response from meal images together with subject-specific clinical and gut microbiome information. Meal images are used to derive macronutrient representations that are combined with personalized tabular features for glucose-response prediction.
+
+The project was originally developed as part of the master's thesis:
+
+**Personalized Postprandial Glucose Prediction with Multimodal Machine Learning. Food Images, Clinical Data, and Microbiome Integration**  
+Technical University of Munich, 2026.
 
 ## Project Overview
 
@@ -182,36 +192,61 @@ The repository supports several CGM prediction heads:
 * `CGMHeadMicroFiLM`: microbiome-conditioned FiLM modulation (legacy);
 * `CGMHeadAttentionMicroFiLM`: attention-based fusion with microbiome conditioning.
 
+
+## Publication
+
+This repository accompanies the paper:
+
+**Predicting Postprandial Glycemic Response from Meal Images, Clinical Variables, and Gut Microbiome Information**
+
+Varvara Kondratyeva, Kamilia Zaripova, Nassir Navab, Azade Farshad
+
+Accepted at the **MICCAI 2026 Workshop on Multimodal Learning with Medical Tabular Data (MultiTab)**.
+
+📄 **Preprint:** [arXiv] (will be added once available)
+
+The paper will appear in the **Lecture Notes in Computer Science (LNCS)** proceedings published by Springer Nature. The Springer link and DOI will be added here once available.
+
+The arXiv version corresponds to the pre-peer-review submitted manuscript.
+
 ## Thesis
 
 This repository accompanies the master’s thesis:
 
-**Multimodal Prediction of Postprandial Glycemic Response from Food Images and Personalized Features**
+**Personalized Postprandial Glucose Prediction with Multimodal Machine Learning. Food Images, Clinical Data, and Microbiome Integration**
 
-Technical University of Munich
+Technical University of Munich, 2026,
 Chair for Computer-Aided Medical Procedures and Augmented Reality
 
 ## Citation
 
-If you use this repository, please cite:
+
+If you use this repository, please cite our paper:
 
 ```bibtex
-@mastersthesis{kondratyeva2026ppgr,
-  author = {Kondratyeva, Varvara},
-  title = {Multimodal Prediction of Postprandial Glycemic Response from Food Images and Personalized Features},
-  school = {Technical University of Munich},
-  year = {2026}
+@article{kondratyeva2026ppgr,
+  title   = {Predicting Postprandial Glycemic Response from Meal Images,
+             Clinical Variables, and Gut Microbiome Information},
+  author  = {Kondratyeva, Varvara and Zaripova, Kamilia and
+             Navab, Nassir and Farshad, Azade},
+  year    = {2026},
+  journal = {arXiv preprint arXiv:XXXX.XXXXX}
 }
 ```
 
 ## License
 
-This repository is intended for academic and research purposes. Please check the license file before using or modifying the code.
+No open-source license has been assigned to this repository yet.
 
+The code is made publicly available for research transparency and reproducibility. Parts of the image-based nutrition estimation code are adapted from RGB-DNet, and parts of the data preprocessing pipeline are based on the CGMacros repository; those components remain subject to the terms of their respective original licenses.
+
+The accompanying paper/preprint is distributed separately under the license specified on arXiv.
 ## Contact
 
 For questions about the repository, please contact:
 
-Varvara Kondratyeva
-Technical University of Munich
+Varvara Kondratyeva,
+varvara.kondratyeva@tum.de
+
+Technical University of Munich,
 Chair for Computer-Aided Medical Procedures and Augmented Reality
