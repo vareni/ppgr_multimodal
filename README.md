@@ -2,10 +2,10 @@
 
 This repository contains the code accompanying the paper:
 
-**Predicting Postprandial Glycemic Response from Meal Images, Clinical Variables, and Gut Microbiome Information**
+[**Predicting Postprandial Glycemic Response from Meal Images, Clinical Variables, and Gut Microbiome Information**](http://arxiv.org/abs/2609.24453)
 
 Varvara Kondratyeva, Kamilia Zaripova, Nassir Navab, Azade Farshad  
-Accepted at the **MICCAI 2026 Workshop on Multimodal Learning with Medical Tabular Data (MultiTab)**.
+Accepted at the [**MICCAI 2026 Workshop on Multimodal Learning with Medical Tabular Data (MultiTab)**](https://multitab-miccai-2026.github.io/).
 
 The work investigates multimodal machine learning approaches for predicting postprandial glycemic response from meal images together with subject-specific clinical and gut microbiome information. Meal images are used to derive macronutrient representations that are combined with personalized tabular features for glucose-response prediction.
 
@@ -53,9 +53,9 @@ CGM_multimodal/
 └── .gitignore
 ```
 
-The main implementation is located in `combined_model/`. The `models/` directory contains the neural network components, including the ResNet-based macronutrient model adapted from the RGB-DNet nutrition estimation framework (http://123.57.42.89/codes/RGB-DNet/nutrition.html) and the CGM prediction heads. The main training entry point is `combined_model_macro_losses.py`, which trains the combined model using both macronutrient-related losses and the downstream glucose response prediction loss.
+The main implementation is located in `combined_model/`. The `models/` directory contains the neural network components, including the ResNet-based macronutrient model adapted from the [RGB-DNet nutrition estimation framework](http://123.57.42.89/codes/RGB-DNet/nutrition.html) and the CGM prediction heads. The main training entry point is `combined_model_macro_losses.py`, which trains the combined model using both macronutrient-related losses and the downstream glucose response prediction loss.
 
-The `DATA_PREPROCESSING/` directory contains scripts used to prepare the input data, including meal-level annotations, CGM-derived targets, and cleaned metadata (based on https://github.com/PSI-TAMU/CGMacros). The `EXPLORATION/` directory contains exploratory analyses and intermediate experiments that were used during model development but are not required for running the final training pipeline.
+The `DATA_PREPROCESSING/` directory contains scripts used to prepare the input data, including meal-level annotations, CGM-derived targets, and cleaned metadata (based on [CGMacros](https://github.com/PSI-TAMU/CGMacros)). The `EXPLORATION/` directory contains exploratory analyses and intermediate experiments that were used during model development but are not required for running the final training pipeline.
 
 
 ## Data and Preprocessing
@@ -203,7 +203,7 @@ Varvara Kondratyeva, Kamilia Zaripova, Nassir Navab, Azade Farshad
 
 Accepted at the **MICCAI 2026 Workshop on Multimodal Learning with Medical Tabular Data (MultiTab)**.
 
-📄 **Preprint:** [arXiv] (will be added once available)
+📄 **Preprint:** [arXiv](http://arxiv.org/abs/2609.24453)
 
 The paper will appear in the **Lecture Notes in Computer Science (LNCS)** proceedings published by Springer Nature. The Springer link and DOI will be added here once available.
 
@@ -230,7 +230,7 @@ If you use this repository, please cite our paper:
   author  = {Kondratyeva, Varvara and Zaripova, Kamilia and
              Navab, Nassir and Farshad, Azade},
   year    = {2026},
-  journal = {arXiv preprint arXiv:XXXX.XXXXX}
+  journal = {arXiv preprint arXiv:2609.24453}
 }
 ```
 
